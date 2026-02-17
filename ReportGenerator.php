@@ -34,7 +34,7 @@ class ReportGenerator {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vantoria Log Analysis Report - $timestamp</title>
+    <title>Hellves Log Analysis Report - $timestamp</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -180,7 +180,7 @@ class ReportGenerator {
 </head>
 <body>
     <div class="container">
-        <h1>📊 Vantoria Log Analysis Report</h1>
+        <h1>📊 Hellves Log Analysis Report</h1>
         <p class="text-muted">Generated: $timestamp</p>
 
 HTML;
@@ -250,8 +250,18 @@ HTML;
         $rows = '';
         foreach ($errorsPerHour as $hour => $count) {
             $width = $maxErrors > 0 ? ($count / $maxErrors * 100) : 0;
+            
+            // Twórz widełki czasu (np. "2026-02-13 18:00-19:00")
+            $timeRange = $hour;
+            if (preg_match('/^(\d{4}-\d{2}-\d{2}) (\d{2}):00$/', $hour, $matches)) {
+                $date = $matches[1];
+                $hourNum = (int)$matches[2];
+                $nextHour = str_pad(($hourNum + 1) % 24, 2, '0', STR_PAD_LEFT);
+                $timeRange = "{$date} {$matches[2]}:00-{$nextHour}:00";
+            }
+            
             $rows .= "<tr>";
-            $rows .= "<td><strong>" . htmlspecialchars($hour) . "</strong></td>";
+            $rows .= "<td><strong>" . htmlspecialchars($timeRange) . "</strong></td>";
             $rows .= "<td><span class='badge bg-gradient-danger text-white'>{$count}</span></td>";
             $rows .= "<td><div class='error-bar' style='width: {$width}%'></div></td>";
             $rows .= "</tr>";
@@ -268,7 +278,7 @@ HTML;
                     <table class="table table-striped table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th>Godzina</th>
+                                <th>Przedział czasowy</th>
                                 <th>Liczba błędów</th>
                                 <th>Proporcja</th>
                             </tr>

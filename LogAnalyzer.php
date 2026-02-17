@@ -10,6 +10,7 @@ class LogAnalyzer {
     private $errorsPerHour = [];
     private $unparsedLines = [];
     private $messagesExamples = [];
+    private $playerDetails = []; // [player => ['level' => X, 'vocation' => Y, 'ip' => Z, 'logins' => [timestamps]]]
     
     public function __construct($logFilePath) {
         $this->logContent = file_get_contents($logFilePath);
@@ -122,22 +123,57 @@ class LogAnalyzer {
                 }
             }
             
-            // Check for logins
+            // Check for logins - format: "Player Name (Level X Vocation)" lub "Player Name" logged in with IP
             if (preg_match('/(.+?) logged in/', $message, $matches)) {
-                $player = $matches[1];
+                $playerRaw = $matches[1];
+                // Usuń prefix "Player "
+                $player = preg_replace('/^Player\s+/', '', $playerRaw);
+                
                 $this->stats['logins']++;
                 
                 if (!isset($this->logins[$player])) {
                     $this->logins[$player] = 0;
                 }
                 $this->logins[$player]++;
-            }
-            
-            // Extract IP addresses
-            if (preg_match('/(\d+\.\d+\.\d+\.\d+)/', $line, $matches)) {
-                $ip = $matches[1];
-                if (preg_match('/(.+?) logged in/', $message, $playerMatches)) {
-                    $player = $playerMatches[1];
+                
+                // Wyciągnij poziom i profesję z formatu "Name (Level X Vocation)"
+                $level = null;
+                $vocation = null;
+                if (preg_match('/\(Level (\d+) ([^)]+)\)/', $playerRaw, $detailMatches)) {
+                    $level = (int)$detailMatches[1];
+                    $vocation = trim($detailMatches[2]);
+                }
+                
+                // Wyciągnij IP z całej linii
+                $ip = null;
+                if (preg_match('/(\d+\.\d+\.\d+\.\d+)/', $line, $ipMatches)) {
+                    $ip = $ipMatches[1];
+                }
+                
+                // Zapisz szczegóły gracza
+                if (!isset($this->playerDetails[$player])) {
+                    $this->playerDetails[$player] = [
+                        'level' => $level,
+                        'vocation' => $vocation,
+                        'ip' => $ip,
+                        'logins' => []
+                    ];
+                }
+                
+                // Dodaj timestamp logowania
+                $this->playerDetails[$player]['logins'][] = $timestamp;
+                
+                // Aktualizuj jeśli mamy nowsze dane
+                if ($level !== null) {
+                    $this->playerDetails[$player]['level'] = $level;
+                    $this->playerDetails[$player]['vocation'] = $vocation;
+                }
+                if ($ip !== null) {
+                    $this->playerDetails[$player]['ip'] = $ip;
+                }
+                
+                // Extract IP addresses for IP->Players mapping
+                if ($ip !== null) {
                     if (!isset($this->ipPlayers[$ip])) {
                         $this->ipPlayers[$ip] = [];
                     }
@@ -323,6 +359,15 @@ class LogAnalyzer {
     }
     
     public function getUnparsedLines() {
-        return array_slice($this->unparsedLines, 0, 100);
+        // Filtruj linie które są tylko timestampem (bez treści)
+        $filtered = array_filter($this->unparsedLines, function($line) {
+            // Sprawdź czy linia jest tylko timestampem (format: 2026-02-13_18-24-58.084480)
+            return !preg_match('/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d+$/', trim($line));
+        });
+        return array_slice($filtered, 0, 100);
+    }
+    
+    public function getPlayerDetails() {
+        return $this->playerDetails;
     }
 }

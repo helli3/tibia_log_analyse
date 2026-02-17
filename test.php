@@ -23,7 +23,7 @@ header('Content-Type: text/html; charset=utf-8');
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Vantoria Log Analyzer - Test konfiguracji PHP</h1>
+        <h1>🔧 Hellves Log Analyzer - Test konfiguracji PHP</h1>
         
         <h3>📊 Informacje o PHP</h3>
         <table class="table table-striped">

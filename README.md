@@ -1,6 +1,6 @@
-# 📊 Vantoria Log Analyzer - PHP Version
+# 📊 Hellves Log Analyzer - PHP Version
 
-Webowa aplikacja do analizy logów serwera Vantoria z interfejsem upload i automatycznym generowaniem raportów.
+Webowa aplikacja do analizy logów serwera z interfejsem upload i automatycznym generowaniem raportów.
 
 ## 🚀 Jak uruchomić
 
@@ -160,7 +160,7 @@ Zastąp kolorami hex według własnych preferencji.
 
 ## 📝 Licencja
 
-Ten projekt jest częścią Vantoria Log Analyzer suite.
+Ten projekt jest częścią Hellves Log Analyzer suite.
 
 ## 🤝 Wsparcie
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vantoria Log Analyzer - PHP</title>
+    <title>Hellves Log Analyzer - PHP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -80,7 +80,7 @@
 <body>
     <div class="container">
         <div class="upload-container">
-            <h1 class="text-center">📊 Vantoria Log Analyzer</h1>
+            <h1 class="text-center">📊 Hellves Log Analyzer</h1>
             <p class="text-center text-muted mb-4">Upload pliku log i wygeneruj szczegółowy raport</p>
             
             <form id="uploadForm" method="POST" action="analyze.php" enctype="multipart/form-data">
