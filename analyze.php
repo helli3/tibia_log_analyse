@@ -29,7 +29,7 @@ if (!in_array($fileExtension, $allowedExtensions)) {
 }
 
 // Create temp directory if it doesn't exist
-$tempDir = sys_get_temp_dir() . '/vantoria_logs';
+$tempDir = sys_get_temp_dir() . '/hellves_logs';
 if (!file_exists($tempDir)) {
     mkdir($tempDir, 0777, true);
 }
@@ -44,6 +44,15 @@ if (!file_exists($uploadsDir)) {
     mkdir($uploadsDir, 0777, true);
     // Dodaj .htaccess blokujący dostęp
     file_put_contents($uploadsDir . '/.htaccess', "Deny from all\n");
+}
+
+// Mechanizm deduplication - sprawdź hash pliku
+$uploadedFileHash = md5_file($_FILES['logfile']['tmp_name']);
+$hashFile = $uploadsDir . '/hashes.txt';
+$existingHashes = file_exists($hashFile) ? file($hashFile, FILE_IGNORE_NEW_LINES) : [];
+
+if (in_array($uploadedFileHash, $existingHashes)) {
+    die('❌ Ten plik log został już wcześniej przeanalizowany. Nie będziemy go analizować ponownie.');
 }
 
 // Nazwa pliku oryginalnego (zabezpieczenie przed kolizją)
@@ -84,6 +93,39 @@ try {
     // Analyze log file
     $analyzer = new LogAnalyzer($tempFile);
     $analyzer->analyze();
+    
+    // Zapisz hash pliku do listy (deduplication)
+    file_put_contents($hashFile, $uploadedFileHash . "\n", FILE_APPEND);
+    
+    // Zapisz CSV z danymi graczy do katalogu $ave
+    $playerDetails = $analyzer->getPlayerDetails();
+    if (!empty($playerDetails)) {
+        $csvFileName = $uploadTimestamp . '_' . $userIpSafe . '_players.csv';
+        $csvFilePath = $uploadsDir . '/' . $csvFileName;
+        
+        $csvFile = fopen($csvFilePath, 'w');
+        // Header CSV z datą logowania
+        fputcsv($csvFile, ['Gracz', 'Poziom', 'Profesja', 'Adres IP', 'Liczba logowań', 'Daty logowań'], ';');
+        
+        // Sortuj po liczbie logowań (malejąco)
+        uasort($playerDetails, function($a, $b) {
+            return count($b['logins']) - count($a['logins']);
+        });
+        
+        // Zapisz dane graczy
+        foreach ($playerDetails as $player => $details) {
+            $loginDates = implode(', ', $details['logins'] ?? []);
+            fputcsv($csvFile, [
+                $player,
+                $details['level'] ?? 'N/A',
+                $details['vocation'] ?? 'N/A',
+                $details['ip'] ?? 'N/A',
+                count($details['logins'] ?? []),
+                $loginDates
+            ], ';');
+        }
+        fclose($csvFile);
+    }
     
     // Generate HTML report
     $generator = new ReportGenerator($analyzer);
