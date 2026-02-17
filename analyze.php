@@ -49,10 +49,37 @@ if (!file_exists($uploadsDir)) {
 // Mechanizm deduplication - sprawdź hash pliku
 $uploadedFileHash = md5_file($_FILES['logfile']['tmp_name']);
 $hashFile = $uploadsDir . '/hashes.txt';
-$existingHashes = file_exists($hashFile) ? file($hashFile, FILE_IGNORE_NEW_LINES) : [];
+$existingHashes = [];
+$hashToReport = [];
+
+if (file_exists($hashFile)) {
+    $lines = file($hashFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $parts = explode(',', $line, 2);
+        if (count($parts) === 2) {
+            $existingHashes[] = $parts[0];
+            $hashToReport[$parts[0]] = $parts[1];
+        }
+    }
+}
 
 if (in_array($uploadedFileHash, $existingHashes)) {
-    die('❌ Ten plik log został już wcześniej przeanalizowany. Nie będziemy go analizować ponownie.');
+    // Plik już był analizowany - wyślij poprzedni raport
+    $reportFileName = $hashToReport[$uploadedFileHash];
+    $reportFilePath = $uploadsDir . '/' . $reportFileName;
+    
+    if (file_exists($reportFilePath)) {
+        $reportHTML = file_get_contents($reportFilePath);
+        
+        header('Content-Type: text/html; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $reportFileName . '"');
+        header('Content-Length: ' . strlen($reportHTML));
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Pragma: no-cache');
+        
+        echo $reportHTML;
+        exit;
+    }
 }
 
 // Nazwa pliku oryginalnego (zabezpieczenie przed kolizją)
@@ -94,9 +121,6 @@ try {
     $analyzer = new LogAnalyzer($tempFile);
     $analyzer->analyze();
     
-    // Zapisz hash pliku do listy (deduplication)
-    file_put_contents($hashFile, $uploadedFileHash . "\n", FILE_APPEND);
-    
     // Zapisz CSV z danymi graczy do katalogu $ave
     $playerDetails = $analyzer->getPlayerDetails();
     if (!empty($playerDetails)) {
@@ -134,6 +158,13 @@ try {
     // Generate filename
     $timestamp = date('Ymd_His');
     $reportFilename = "raport_{$timestamp}.html";
+    
+    // Zapisz raport HTML do katalogu $ave (dla deduplication)
+    $reportFilePath = $uploadsDir . '/' . $reportFilename;
+    file_put_contents($reportFilePath, $reportHTML);
+    
+    // Zapisz hash pliku do listy (deduplication) wraz z nazwą raportu
+    file_put_contents($hashFile, $uploadedFileHash . ',' . $reportFilename . "\n", FILE_APPEND);
     
     // Send report as download
     header('Content-Type: text/html; charset=utf-8');
